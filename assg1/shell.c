@@ -26,7 +26,8 @@ int main(int argc, char* argv[])
 		else if (pid == 0){ // fork
 			//printf("I\'m the child (%d)\n", (int)getpid());		
 			int a = execvp(cargs[0],cargs);
-			printf("%s: command not found\n",cargs[0]);
+			// printf("%s: command not found\n",cargs[0]);
+			fprintf(stderr, "%s: command not found\n",cargs[0]);
 			exit(1);
 		}
 		else{ // parent
