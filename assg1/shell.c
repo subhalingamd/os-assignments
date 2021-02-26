@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h> 
 #include <sys/wait.h>
+#include <fcntl.h>
 
 #define MAX_ARGS  16
 #define MAX_CHARS 1024
@@ -15,7 +16,7 @@ int main(int argc, char* argv[])
 	while (1){
 		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*100);}
 		
-		printf("MTL458:~$ ");
+		printf("\033[32;1mMTL458:~$ \033[0m");
 		get_input_and_cook(cargs);		
 
 		int pid = fork();
