@@ -12,12 +12,16 @@
 
 int main(int argc, char* argv[]) 
 {
-	void get_input_and_cook(char*[]);
+	void parse_input(char*,char*[]);
+	char* get_input();
+
 	while (1){
 		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*100);}
 		
 		printf("\033[32;1mMTL458:~$ \033[0m");
-		get_input_and_cook(cargs);		
+
+		char* inp = get_input();
+		parse_input(inp,cargs);
 
 		// if (cargs[0]==NULL) {continue;}  // [NOT REQD] handle empty line as input
 
@@ -41,14 +45,19 @@ int main(int argc, char* argv[])
 	return 0; 
 }
 
-void get_input_and_cook(char *cargs[]){	
-	char *inp=(char*)malloc(sizeof(char)*MAX_CHARS); 
-	int w = 0,c = 0;
+char* get_input(){
+	char *inp=(char*)malloc(sizeof(char)*MAX_CHARS);
 
-	fgets(inp,MAX_CHARS,stcdin);
+	fgets(inp,MAX_CHARS,stdin);
 	inp[strlen(inp)-1] ='\0';  // change the last \n to \0
 	
 	//scanf("%[^\n]%*c", inp);  // problems with empty string...
+
+	return inp;
+}
+
+void parse_input(char *inp, char *cargs[]){	
+	int w = 0,c = 0;
 	
 	// for(;*inp==' ';inp++);  // strip leading whitespace...
 	// if (!*inp) {cargs[0]=NULL; return;} // handling empty line case seperately
