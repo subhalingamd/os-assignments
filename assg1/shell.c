@@ -19,6 +19,8 @@ int main(int argc, char* argv[])
 		printf("\033[32;1mMTL458:~$ \033[0m");
 		get_input_and_cook(cargs);		
 
+		// if (cargs[0]==NULL) {continue;}  // [NOT REQD] handle empty line as input
+
 		int pid = fork();
 		if (pid < 0){
 			printf("Fork failed!");
@@ -43,9 +45,13 @@ void get_input_and_cook(char *cargs[]){
 	char *inp=(char*)malloc(sizeof(char)*MAX_CHARS); 
 	int w = 0,c = 0;
 
-	//fgets(inp,100,stdin);
-	//inp[strlen(inp)-1] ='\0';
-	scanf("%[^\n]%*c", inp);
+	fgets(inp,MAX_CHARS,stcdin);
+	inp[strlen(inp)-1] ='\0';  // change the last \n to \0
+	
+	//scanf("%[^\n]%*c", inp);  // problems with empty string...
+	
+	// for(;*inp==' ';inp++);  // strip leading whitespace...
+	// if (!*inp) {cargs[0]=NULL; return;} // handling empty line case seperately
 
 	while (*inp){		  // != '\0'
 
@@ -58,7 +64,7 @@ void get_input_and_cook(char *cargs[]){
 		}
 		
 	}
-	cargs[++w] = NULL;
+	if (cargs[w][0] == '\0') cargs[w]=NULL; else cargs[++w] = NULL;  // entry/exit with empty string test
 	
 }
 
