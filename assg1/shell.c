@@ -8,25 +8,28 @@
 
 #define MAX_ARGS  16
 #define MAX_CHARS 1024
+#define MAX_PATHL 1024
 #define MAX_HIST  5
 
 
 int main(int argc, char* argv[]) 
 {
 	void parse_input(char*,char*[]), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
-	char *get_input(), *history[5];
+	char *get_input(), *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(_home_path,sizeof(_home_path)), cwd[MAX_PATHL], *curr_path=strdup("~"), *history[5];
 	int history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
 		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*100);}
 		
-		printf("\033[32;1mMTL458:~$ \033[0m");
+		printf("\033[32;1mMTL458:%s$ \033[0m",curr_path);
 
 		char* inp = get_input();
 		parse_input(inp,cargs);
-		if (cargs[0]) update_history(inp,history,&history_start,&history_count,&history_global_count);
-
-		// if (cargs[0]==NULL) {continue;}  // [NOT REQD] handle empty line as input
+		
+		if (cargs[0]==NULL) {continue;}  // [not really reqd but simplify next steps] handle empty line as input
+		update_history(inp,history,&history_start,&history_count,&history_global_count); // this should come before any command handling!!
+		
+		if (!strcmp(cargs[0],"cd")) { curr_path=path_resolver(cargs[1],_home_path,cwd,sizeof(cwd)); continue; }
 
 		int pid = fork();
 		if (pid < 0){ // fork failed
@@ -82,6 +85,16 @@ void parse_input(char *inp, char *cargs[]){
 	}
 	if (cargs[w][0] == '\0') cargs[w]=NULL; else cargs[++w] = NULL;  // entry/exit with empty string test
 
+}
+
+char* path_resolver(char *path,char *start, char buff[], int size_buff){
+	if (chdir(path)) { fprintf(stderr,"cd: %s: ",path); perror(""); }
+	char *cwd = getcwd(buff,size_buff);
+	// if (!*cwd) { } // handle this later...
+	
+	while (*start&&*cwd){ start++; cwd++; }
+	if (!*start) { *--cwd='~'; return cwd; } // handle???
+	return buff;
 }
 
 void update_history(char* inp,char *history[],int* start,int* count,int* tot_count){
