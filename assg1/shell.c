@@ -7,6 +7,7 @@
 #include <fcntl.h>
 
 #define MAX_ARGS  16
+#define MAX_ARGS1 256
 #define MAX_CHARS 1024
 #define MAX_PATHL 1024
 #define MAX_HIST  5
@@ -19,8 +20,8 @@ int main(int argc, char* argv[])
 	int history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
-		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*100);}
-		
+		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*MAX_ARGS1);}
+
 		printf("\033[32;1mMTL458:%s$ \033[0m",curr_path);
 
 		char* inp = get_input();
@@ -91,7 +92,7 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	if (chdir(path)) { fprintf(stderr,"cd: %s: ",path); perror(""); }
 	char *cwd = getcwd(buff,size_buff);
 	// if (!*cwd) { } // handle this later...
-	
+
 	while (*start&&*cwd){ start++; cwd++; }
 	if (!*start) { *--cwd='~'; return cwd; } // handle???
 	return buff;
