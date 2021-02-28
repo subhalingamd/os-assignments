@@ -16,7 +16,7 @@
 int main(int argc, char* argv[]) 
 {
 	void parse_input(char*,char*[]), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
-	char *get_input(), *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(_home_path,sizeof(_home_path)), cwd[MAX_PATHL], *curr_path=strdup("~"), *history[MAX_HIST];
+	char *get_input(), *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL], *curr_path=strdup("~"), *history[MAX_HIST];
 	int history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
