@@ -80,7 +80,16 @@ void parse_input(char *inp, char *cargs[]){
 			if (strlen(cargs[w])>0) {w++;} //ignore if empty string
 		}
 		else {
-			cargs[w][c++]=*inp++;
+			if (*inp=='\"'){	// start of quote
+				inp++;			// skip the starting quote
+				while (*inp && *inp!='\"'){	// until *inp != '\0' and '\"'
+					cargs[w][c++]=*inp++;	// insert to the cargs
+				}
+				if (*inp) inp++; // skip the ending quote
+			}
+			else {
+				cargs[w][c++]=*inp++;
+			}
 		}
 
 	}
