@@ -16,7 +16,7 @@
 int main(int argc, char* argv[]) 
 {
 	void parse_input(char*,char*[]), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
-	char *get_input(), *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL], *curr_path=strdup("~"), *history[MAX_HIST];
+	char *get_input(), *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL+MAX_CHARS], *curr_path=strdup("~"), *history[MAX_HIST];
 	int history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
@@ -98,6 +98,13 @@ void parse_input(char *inp, char *cargs[]){
 }
 
 char* path_resolver(char *path,char *start, char buff[], int size_buff){
+	// if (!strcmp(start,"/")) start= (char*) ""; // ?? handle start with "/"
+	char t[MAX_PATHL+MAX_CHARS];
+	strcpy(t,path);
+	if (*path && *path=='~') {
+		strcpy(t,start); strcat(t,++path); 
+	}
+	path=t;
 	if (chdir(path)) { fprintf(stderr,"cd: %s: ",path); perror(""); }
 	char *cwd = getcwd(buff,size_buff);
 	// if (!*cwd) { } // handle this later...
