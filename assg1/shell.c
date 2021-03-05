@@ -7,7 +7,7 @@
 #include <fcntl.h>
 
 #define MAX_ARGS  16
-#define MAX_ARGS1 256
+#define MAX_ARGL  1024
 #define MAX_CHARS 1024
 #define MAX_PATHL 1024
 #define MAX_HIST  5
@@ -15,20 +15,20 @@
 
 int main(int argc, char* argv[]) 
 {
-	void get_input(char*), parse_input(char*,char*[]), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
-	char *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL+MAX_CHARS], *curr_path=strdup("~"), *history[MAX_HIST];
-	int history_start = -1, history_count = 0, history_global_count = 0;
+	void parse_input(char*,char*[]), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
+	char *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL+MAX_CHARS+2], *curr_path=strdup("~"), *history[MAX_HIST];
+	int get_input(char*), history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
-		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*MAX_ARGS1);}
-		char *inp=(char*)malloc(sizeof(char)*(MAX_CHARS+1));
+		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*(MAX_ARGL+2));}
+		char *inp=(char*)malloc(sizeof(char)*(MAX_CHARS+2));
 
 		printf("\033[32;1mMTL458:%s$ \033[0m",curr_path);
 
-		get_input(inp);
+		if (!get_input(inp)) continue;	// skip if empty input/limit exceeded
 		parse_input(inp,cargs);
 		
-		if (cargs[0]==NULL) {continue;}  // [not really reqd but simplify next steps] handle empty line as input
+		// if (cargs[0]==NULL) {continue;}  // [not really reqd but simplify next steps] handle empty line as input
 		update_history(inp,history,&history_start,&history_count,&history_global_count); // this should come before any command handling!!
 
 		int pid = fork();
@@ -55,9 +55,23 @@ int main(int argc, char* argv[])
 	return 0; 
 }
 
-void get_input(char *inp){
-	fgets(inp,MAX_CHARS,stdin);
-	inp[strlen(inp)-1] ='\0';  // change the last \n to \0
+int get_input(char *inp){
+
+	if (fgets(inp,MAX_CHARS+2,stdin)){
+		size_t len = strlen(inp); 
+		if (len == 0){	// empty input
+			return 0;
+		}
+		if (inp[len-1] != '\n'){ // buffer overflow
+			int c;
+			while ((c = getchar()) != '\n' && c != EOF);	// flush buffer
+			fprintf(stderr,"Error: Input limit exceeded (Allowed: %d characters)\n",MAX_CHARS);
+			return 0;
+		}
+		inp[len-1] ='\0'; // change the last \n to \0
+		return 1;
+	}
+	return 0;	
 	
 	//scanf("%[^\n]%*c", inp);  // problems with empty string...
 }
@@ -94,7 +108,7 @@ void parse_input(char *inp, char *cargs[]){
 
 char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	// if (!strcmp(start,"/")) start= (char*) ""; // ?? handle start with "/"
-	char t[MAX_PATHL+MAX_CHARS];
+	char t[MAX_PATHL+MAX_CHARS+2];
 	strcpy(t,path);
 	if (*path && *path=='~') {
 		strcpy(t,start); strcat(t,++path); 
