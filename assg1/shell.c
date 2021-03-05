@@ -30,8 +30,6 @@ int main(int argc, char* argv[])
 		
 		if (cargs[0]==NULL) {continue;}  // [not really reqd but simplify next steps] handle empty line as input
 		update_history(inp,history,&history_start,&history_count,&history_global_count); // this should come before any command handling!!
-		
-		if (!strcmp(cargs[0],"cd")) { curr_path=path_resolver(cargs[1],_home_path,cwd,sizeof(cwd)); continue; }
 
 		int pid = fork();
 		if (pid < 0){ // fork failed
@@ -39,8 +37,8 @@ int main(int argc, char* argv[])
 		}
 		else if (pid == 0){ // fork
 			//printf("I\'m the child (%d)\n", (int)getpid());	
-
-			if (!strcmp(cargs[0],"history")) serve_history(history,history_start,history_count,history_global_count);
+			if (!strcmp(cargs[0],"cd")) { if(cargs[1]) curr_path=path_resolver(cargs[1],_home_path,cwd,sizeof(cwd)); }
+			else if (!strcmp(cargs[0],"history")) serve_history(history,history_start,history_count,history_global_count);
 			else {
 				int a = execvp(cargs[0],cargs);
 				// printf("%s: command not found\n",cargs[0]);
