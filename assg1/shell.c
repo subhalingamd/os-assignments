@@ -20,8 +20,8 @@ int main(int argc, char* argv[])
 	int get_input(char*), history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
-		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*(MAX_PATHL+MAX_ARGL+2));}
-		char *inp=(char*)malloc(sizeof(char)*(MAX_CHARS+2));
+		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)calloc(MAX_PATHL+MAX_ARGL+2,sizeof(char));}
+		char *inp=(char*)calloc(MAX_CHARS+2,sizeof(char));
 
 		printf("\033[32;1mMTL458:%s$ \033[0m",curr_path);
 
