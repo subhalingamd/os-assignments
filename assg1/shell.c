@@ -49,6 +49,9 @@ int main(int argc, char* argv[])
 		else{ // parent
 			wait(NULL); 
 			//printf("I\'m the  parent(%d)\n", (int)getpid());
+
+			for(int i=0;i<MAX_ARGS;i++){free(cargs[i]);}
+			free(inp);
 		}
 	}
 
