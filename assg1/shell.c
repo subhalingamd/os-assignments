@@ -15,18 +15,18 @@
 
 int main(int argc, char* argv[]) 
 {
-	void parse_input(char*,char*[]), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
+	void parse_input(char*,char*[],char*), update_history(char*,char*[],int*,int*,int*), serve_history(char*[],int,int,int);
 	char *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL+MAX_CHARS+2], *curr_path=strdup("~"), *history[MAX_HIST];
 	int get_input(char*), history_start = -1, history_count = 0, history_global_count = 0;
 
 	while (1){
-		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*(MAX_ARGL+2));}
+		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)malloc(sizeof(char)*(MAX_PATHL+MAX_ARGL+2));}
 		char *inp=(char*)malloc(sizeof(char)*(MAX_CHARS+2));
 
 		printf("\033[32;1mMTL458:%s$ \033[0m",curr_path);
 
 		if (!get_input(inp)) continue;	// skip if empty input/limit exceeded
-		parse_input(inp,cargs);
+		parse_input(inp,cargs,_home_path);
 		
 		// if (cargs[0]==NULL) {continue;}  // [not really reqd but simplify next steps] handle empty line as input
 		update_history(inp,history,&history_start,&history_count,&history_global_count); // this should come before any command handling!!
@@ -76,12 +76,11 @@ int get_input(char *inp){
 	//scanf("%[^\n]%*c", inp);  // problems with empty string...
 }
 
-void parse_input(char *inp, char *cargs[]){	
-	int w = 0,c = 0;
-	
+void parse_input(char *inp, char *cargs[], char *start){
 	// for(;*inp==' ';inp++);  // strip leading whitespace...
 	// if (!*inp) {cargs[0]=NULL; return;} // handling empty line case seperately
 
+	int w = 0, c = 0;
 	while (*inp){		  // != '\0'
 
 		if (*inp==' '){
@@ -97,7 +96,12 @@ void parse_input(char *inp, char *cargs[]){
 				if (*inp) inp++; // skip the ending quote
 			}
 			else {
-				cargs[w][c++]=*inp++;
+				if (c==0 && *inp=='~') {	// starts with ~ 
+					char *t = start;
+					while((cargs[w][c++]=*t++));
+					c--; inp++;
+				}
+				else cargs[w][c++]=*inp++;	
 			}
 		}
 
@@ -108,12 +112,14 @@ void parse_input(char *inp, char *cargs[]){
 
 char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	// if (!strcmp(start,"/")) start= (char*) ""; // ?? handle start with "/"
+	/****** handled in parse_input()
 	char t[MAX_PATHL+MAX_CHARS+2];
 	strcpy(t,path);
 	if (*path && *path=='~') {
 		strcpy(t,start); strcat(t,++path); 
 	}
 	path=t;
+	*********/
 	if (chdir(path)) { fprintf(stderr,"cd: %s: ",path); perror(""); }
 	char *cwd = getcwd(buff,size_buff);
 	// if (!*cwd) { } // handle this later...
