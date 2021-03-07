@@ -19,6 +19,7 @@ int main(int argc, char* argv[])
 	char *path_resolver(char*,char*,char[],int), home_path[MAX_PATHL], *_home_path = getcwd(home_path,sizeof(home_path)), cwd[MAX_PATHL+MAX_CHARS+2], *curr_path=strdup("~"), *history[MAX_HIST];
 	int get_input(char*), history_start = -1, history_count = 0, history_global_count = 0;
 
+	for(int i=0;i<MAX_HIST;i++) {history[i]=(char*)calloc(MAX_CHARS+2,sizeof(char));}
 	while (1){
 		char *cargs[MAX_ARGS]; for(int i=0;i<MAX_ARGS;i++){cargs[i]=(char*)calloc(MAX_PATHL+MAX_ARGL+2,sizeof(char));}
 		char *inp=(char*)calloc(MAX_CHARS+2,sizeof(char));
@@ -28,8 +29,10 @@ int main(int argc, char* argv[])
 		if (!get_input(inp)) continue;	// skip if empty input/limit exceeded
 		parse_input(inp,cargs,_home_path);
 		
-		// if (cargs[0]==NULL) {continue;}  // [not really reqd but simplify next steps] handle empty line as input
 		update_history(inp,history,&history_start,&history_count,&history_global_count); // this should come before any command handling!!
+		if (cargs[0]==NULL) {continue;}  // handle empty line as input except "\n" (eg. "  \n")
+
+		if (!strcmp(cargs[0],"cd")) { if(cargs[1]) curr_path=path_resolver(cargs[1],_home_path,cwd,sizeof(cwd)); continue;}
 
 		int pid = fork();
 		if (pid < 0){ // fork failed
@@ -37,14 +40,13 @@ int main(int argc, char* argv[])
 		}
 		else if (pid == 0){ // fork
 			//printf("I\'m the child (%d)\n", (int)getpid());	
-			if (!strcmp(cargs[0],"cd")) { if(cargs[1]) curr_path=path_resolver(cargs[1],_home_path,cwd,sizeof(cwd)); }
-			else if (!strcmp(cargs[0],"history")) serve_history(history,history_start,history_count,history_global_count);
+			if (!strcmp(cargs[0],"history")) serve_history(history,history_start,history_count,history_global_count);
 			else {
 				int a = execvp(cargs[0],cargs);
 				// printf("%s: command not found\n",cargs[0]);
 				fprintf(stderr, "%s: command not found\n",cargs[0]);
-				exit(1);
 			}
+			exit(0);
 		}
 		else{ // parent
 			wait(NULL); 
@@ -63,6 +65,9 @@ int get_input(char *inp){
 	if (fgets(inp,MAX_CHARS+2,stdin)){
 		size_t len = strlen(inp); 
 		if (len == 0){	// empty input
+			return 0;
+		}
+		if (*inp=='\n'){	// user just presses '\n'
 			return 0;
 		}
 		if (inp[len-1] != '\n'){ // buffer overflow
@@ -134,7 +139,12 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 
 void update_history(char* inp,char *history[],int* start,int* count,int* tot_count){
 	// you can't get history w/o typing history...
-	history[++*start%MAX_HIST] = inp;
+	++*start; *start%=MAX_HIST; // if count<MAX_HIST, start<MAX_HIST
+	strcpy(history[*start],inp); // copy each char in inp to history
+	
+	//int i = 0;
+	//while((history[*start][i++] = *inp++)); // copy each char in inp to history
+	
 	//if (*start >= MAX_HIST) *start%=MAX_HIST;
 	if (*count < MAX_HIST) (*count)++;
 	(*tot_count)++;
