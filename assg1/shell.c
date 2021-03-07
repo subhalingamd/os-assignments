@@ -132,8 +132,8 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	char *cwd = getcwd(buff,size_buff);
 	// if (!*cwd) { } // handle this later...
 
-	while (*start&&*cwd){ start++; cwd++; }
-	if (!*start) { *--cwd='~'; return cwd; } // handle???
+	while (*start&&*cwd&&*start==*cwd){ start++; cwd++; }
+	if (!*start&&(!*cwd||*cwd=='/')) { *--cwd='~'; return cwd; } // handle???
 	return buff;
 }
 
