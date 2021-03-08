@@ -11,11 +11,11 @@ Author: 	Subhalingam D
 #include <sys/wait.h>
 #include <fcntl.h>
 
-#define MAX_ARGS  16		// max space seperated arguments (words) in command
-#define MAX_ARGL  1024		// max length of an argument in command
-#define MAX_CHARS 1024		// max num of characters in the input command
-#define MAX_PATHL 1024		// max length of absolute path of starting directory
-#define MAX_HIST  5			// max number of inputs to keep a track of (size of history)
+#define MAX_CHARS 1024					// max num of characters in the input command
+#define MAX_ARGS  ((int)MAX_CHARS/2)+2	// max space seperated arguments (words) in command [worst is (MAX_CHARS/2+1)+1]
+#define MAX_ARGL  MAX_CHARS				// max length of an argument in command [worst is MAX_CHARS]
+#define MAX_PATHL 1024					// max length of absolute path of starting directory (HOME)
+#define MAX_HIST  5						// max number of inputs to keep a track of (size of history)
 
 
 int main(int argc, char* argv[]) 
@@ -79,7 +79,7 @@ int get_input(char *inp){
 	Returns:
 		- Returns 1 if the input is valid or 0 otherwise
 	Notes:
-		- An input is considered invalid/unnecessary if it is empty, has got only '\n' or the input length exceeded the maximum limit (excluding the '\n' and '\0') as defined in MAX_CHARS
+		- An input is considered invalid/unnecessary if it is empty, has got only '\n' or the input length exceeded the maximum limit MAX_CHARS (excluding the '\n' and '\0')
 	*/
 	if (fgets(inp,MAX_CHARS+2,stdin)){
 		size_t len = strlen(inp); 
@@ -158,7 +158,10 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	Returns:
 		- a pointer to buff
 	Notes:
-		- along with changing the current working directory (cwd), the path that has to be displayed in the shell (with changes to ~) is also modified accordingly
+		- along with changing the current working directory (cwd), the path that has to be displayed in the shell (with changes to ~) is modified in this function
+		- only the first (at position 0) ~ is replaced with home path (like in shell)
+			- e.g.  cd ~/~  : would be translated to  cd /path/to/home/~
+			- e.g.  cd "~"  : would reamin  cd "~"  as the ~ is inside double quotes
 	*/
 
 	// if (!strcmp(start,"/")) start= (char*) ""; // ?? handle start with "/"
@@ -175,10 +178,11 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	char *cwd = getcwd(buff,size_buff);
 
 	while (*start&&*cwd&&*start==*cwd){ start++; cwd++; }
-		// breaks if: \0 encountered in start or cwd or cwd!=start..
+		// To resolve ~ ::
+		// while loop breaks if: \0 encountered in start or cwd or *cwd!=*start..
 		// if start has ended (ie \0 reached) and [ cwd has also reached end (\0) (=> ~) or cwd has / (=> ~/...) ]
-		// if start has not ended (=> out of ~) or start has ended but cwd has some char other than \0 and / (=> starting is okay... but the ending folder name in cwd is prefix of last dir in start --> so not under ~) ==> show the abs path
-	if (!*start&&(!*cwd||*cwd=='/')) { *--cwd='~'; return cwd; } // handle???
+		// (otherwise) if start has not ended (=> out of ~) or start has ended but cwd has some char other than \0 and / (=> starting is okay... but the ending folder name in cwd is prefix of last dir in start --> so not under ~) ==> show the abs path
+	if (!*start&&(!*cwd||*cwd=='/')) { *--cwd='~'; return cwd; } // *(cwd-1) should exist as cwd is non-empty and starts with '/' (which is common for all paths)
 	return buff;
 }
 
@@ -198,6 +202,9 @@ void update_history(char* inp,char *history[],int* start,int* count,int* tot_cou
 			- the new input is inserted at (prev_index+1)%MAX_HIST starting from 0
 			- so the inputs are inserted in the order -> 0,1,2,3,...,MAX_HIST-1,0,1,2,3,...
 		- the start, count, tot_count are passed by reference
+		- everything except "\n" as input is part of the history (incl incorrect commands, combinations of spaces like "  \n")
+			- in this assignemnt, if the input, excluding the last "\n\0", exceeds MAX_CHARS, then such input is also excluded from the history
+		- the input "history" to access the history is also added to history array (as seen in a Linux shell)
 	*/
 
 	// you can't get history w/o typing history...
@@ -226,7 +233,7 @@ void serve_history(char *history[], int start, int count, int tot_count){
 		- the history array is implemented in a circular fashion to optimise the space consumed (as mentioned in update_history())
 			- the most recent input will be stored in start
 			- (start+1)%count will have the desired oldest input (MAX_HIST-th from bottom)
-			- the order indices for listing the history will be -> (start+1)%count, (start+2)%count, ..., start
+			- the order indices for listing the history will be -> (start+1)%count, (start+2)%count, ..., start%count
 			- the serial number for the input can be computed accordingly
 	*/
 	for (int i=0; i<count; i++){
