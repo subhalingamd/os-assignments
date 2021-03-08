@@ -178,6 +178,17 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 	if (chdir(path)) { fprintf(stderr,"cd: %s: ",path); perror(""); }
 	char *cwd = getcwd(buff,size_buff);
 
+	if (!strcmp(start,"/")){	// handle case where HOME is "/" seperately... <>
+		if (!strcmp(cwd,"/")){
+			strcpy(buff,"~");
+			return (char*) buff;
+ 		}
+		char t[MAX_PATHL+MAX_CHARS+2];
+		strcpy(t,cwd);
+		strcpy(buff,"~"); strcat(buff,t);
+		return (char*) buff;
+	}
+
 	while (*start&&*cwd&&*start==*cwd){ start++; cwd++; }
 		// To resolve ~ ::
 		// while loop breaks if: \0 encountered in start or cwd or *cwd!=*start..
