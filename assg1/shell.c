@@ -79,7 +79,7 @@ int get_input(char *inp){
 	Returns:
 		- Returns 1 if the input is valid or 0 otherwise
 	Notes:
-		- An input is considered invalid/unnecessary if it is empty, has got only '\n' or the input length exceeded the maximum limit MAX_CHARS (excluding the '\n' and '\0')
+		- An input is considered invalid/unnecessary if it is empty, has got only '\n' or the input length exceeded the maximum limit MAX_CHARS (excluding the count of '\n' and '\0')
 	*/
 	if (fgets(inp,MAX_CHARS+2,stdin)){
 		size_t len = strlen(inp); 
@@ -98,6 +98,7 @@ int get_input(char *inp){
 		inp[len-1] ='\0'; // change the last \n to \0
 		return 1;
 	}
+	fprintf(stderr,"Error: Something went wrong with fgets()\n");
 	return 0;	
 	
 	//scanf("%[^\n]%*c", inp);  // problems with empty string...
@@ -188,13 +189,13 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 
 void update_history(char* inp,char *history[],int* start,int* count,int* tot_count){
 	/*
-	Description:	Update history for each valid input (inc history command)
+	Description:	Update history for each valid input (incl. history command)
 	Input:
-		- inp: the user input
+		- inp: the user input (uncleaned/unprocessed)
 		- history: array that stores the history
 		- start: the position at which the previous command was inserted in the history array
-		- count: max(the number of commands entered till now, MAX_HIST) - used for serving history
-		- tot_count: total number of inputs by user (this number is used to display the serial number of the previous inputs when history command is used)
+		- count: min(the number of commands entered till now, MAX_HIST) (used for traversing history array and showing counts while serving history in serve_history())
+		- tot_count: total number of inputs by user (used for showing counts while serving history in serve_hsitory())
 	Returns:
 	Notes:
 		- the history array is implemented in a circular fashion to optimise the space consumed
@@ -232,9 +233,9 @@ void serve_history(char *history[], int start, int count, int tot_count){
 	Notes:
 		- the history array is implemented in a circular fashion to optimise the space consumed (as mentioned in update_history())
 			- the most recent input will be stored in start
-			- (start+1)%count will have the desired oldest input (MAX_HIST-th from bottom)
-			- the order indices for listing the history will be -> (start+1)%count, (start+2)%count, ..., start%count
-			- the serial number for the input can be computed accordingly
+			- (start+1)%count will have the desired oldest input (MAX_HIST-th from most recent)
+			- the order of indices for listing the history will be -> (start+1)%count, (start+2)%count, ..., start%count
+			- the serial number for the input can be computed accordingly using tot_count and count
 	*/
 	for (int i=0; i<count; i++){
 		printf("%5d  %s\n",tot_count-count+i+1,history[(start+i+1)%count]);
