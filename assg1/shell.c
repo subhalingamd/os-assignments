@@ -159,7 +159,7 @@ char* path_resolver(char *path,char *start, char buff[], int size_buff){
 		- a pointer to buff
 	Notes:
 		- along with changing the current working directory (cwd), the path that has to be displayed in the shell (with changes to ~) is modified in this function
-		- only the first (at position 0) ~ is replaced with home path (like in shell)
+		- only the first (at position 0) ~ is replaced with home path (like in shell) [this is handled in parse_input()]
 			- e.g.  cd ~/~  : would be translated to  cd /path/to/home/~
 			- e.g.  cd "~"  : would reamin  cd "~"  as the ~ is inside double quotes
 	*/
