@@ -36,7 +36,7 @@ void init_freelist(){
 
 
 int my_init(){
-	void* base = mmap(NULL, _PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
+	base = mmap(NULL, _PAGE_SIZE, PROT_READ|PROT_WRITE, MAP_ANON|MAP_PRIVATE, -1, 0);
 
     if (base == MAP_FAILED) {
             return errno;
