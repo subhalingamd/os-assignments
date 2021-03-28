@@ -9,7 +9,7 @@
 #include <errno.h>
 
 #define _PAGE_SIZE 512 // 4096
-#define _MAGIC_NUM 458106
+#define _MAGIC_NUM 45816
 
 #define min(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -18,7 +18,6 @@ typedef struct Node{
 	int size;
 	struct Node *next;
 } Node;
-
 
 
 ////////////////////////////////////////////////////////////////
@@ -42,7 +41,7 @@ typedef struct _heap_info{
 
 ////////////////////////////////////////////////////////////////
 void *base = NULL;
-
+/////////////////////////////////////////////////////////////////
 
 void init_heap_info(){
 	_heap_info *det = (_heap_info*)(base);
@@ -51,8 +50,9 @@ void init_heap_info(){
 	det->curr_size = sizeof(Node);
 	// check vals once...
 
+	
+	printf("Adding _heap_info at %d\n",(int)(base));
 	/*
-	printf("Adding _heap_info at %p\n",(base));
 	printf("large chunk %d\n",((_heap_info*)(base))->large_chunk);
 	printf("blocks_count %d\n",((_heap_info*)(base))->blocks_count);
 	printf("curr_size %d\n",((_heap_info*)(base))->curr_size);
@@ -75,10 +75,10 @@ void init_freelist(){
 
 	((_heap_info*)base)->head = head;
 
-	/*
-	printf("Currently head at %p\n",(Node*)((_heap_info*)(base)+1));
-	printf("head in _heap_info : %p\n\n",((_heap_info*)base)->head);
-	*/
+	
+	printf("Currently head at %d\n",(int)head);
+	// printf("head in _heap_info : %d\n\n",((_heap_info*)base)->head);
+	
 	
 	/* printf("Address of head: %d\n",(int)head); */
 
@@ -149,8 +149,9 @@ void* my_alloc(int size){
 	Node *head = (Node*)(((_heap_info*)base)->head);
 	printf("myalloc says head is %d\n",(int)head);
 
+	// no free space / one node / 2+ nodes...
 	if (head == NULL) { // no free space
-		printf("head==NULL>>>>\n");
+		printf("head==NULL>>>>\n\n");
 		_heap_info *det = (_heap_info*)(base);
 		det->large_chunk = det->small_chunk = 0 ;
 		return NULL;
@@ -178,7 +179,8 @@ void* my_alloc(int size){
 				((_heap_info*)base)->head = new_head;
 				
 				printf("[Now, old_head->size will be size in header = %d]\n",(int)*(int*)head);
-				printf("[Returns %d]\n",(int)((void*)(alloc)+sizeof(_header)));
+				printf("[Alloc at %d]\n",(int)alloc);
+				printf("[New head is at %d (%d)]\n\n",(int)((_heap_info*)base)->head,(int)new_head);
 				
 				_heap_info *det = (_heap_info*)(base);
 				det->large_chunk = det->small_chunk = new_head->size;
@@ -199,9 +201,9 @@ void* my_alloc(int size){
 
 				_heap_info *det = (_heap_info*)(base);
 				det->large_chunk = det->small_chunk = 0;
-				det->curr_size += (size + sizeof(_header) - sizeof(Node));
+				det->curr_size += (size + sizeof(_header) - sizeof(Node)); // = head->size
 				det->blocks_count += 1; 
-
+				printf("[Alloc at %d]\n",(int)alloc);
 				return ((void*)(alloc)+sizeof(_header));
 			}
 		}
@@ -375,13 +377,22 @@ void my_free(void *ptr){
 		guest->next = ((_heap_info*)base)->head;
 		((_heap_info*)base)->head = guest;
 
-		int bs = ((_heap_info*)(base))->large_chunk;
-		((_heap_info*)(base))->large_chunk = max(bs,guest->size);
+		// if small chunk == 0 && large chunk == 0 => we cant determine if chunk exists and that size is 0 or chunk doesn't exist itself...
+		//if ( (((_heap_info*)(base))->small_chunk == 0) || (((_heap_info*)(base))->large_chunk==-1 && ((_heap_info*)(base))->small_chunk == -1) ){
+		if ( (((_heap_info*)(base))->large_chunk <= 0 && ((_heap_info*)(base))->small_chunk <= 0) ){
+			// invalidate
+			((_heap_info*)(base))->large_chunk = -1;
+			((_heap_info*)(base))->small_chunk = -1;
+		}
+		else{
+			int bs = ((_heap_info*)(base))->large_chunk;
+			((_heap_info*)(base))->large_chunk = max(bs,guest->size);
 
-		bs = ((_heap_info*)(base))->small_chunk;
-		if (bs > 0) { ((_heap_info*)(base))->small_chunk = min(bs,guest->size); }
-		else { ((_heap_info*)(base))->small_chunk = guest->size;}
-		
+			bs = ((_heap_info*)(base))->small_chunk;
+			//if (bs > 0) { ((_heap_info*)(base))->small_chunk = min(bs,guest->size); }
+			//else { ((_heap_info*)(base))->small_chunk = guest->size;}
+			((_heap_info*)(base))->small_chunk = min(bs,guest->size);
+		}
 		
 		((_heap_info*)(base))->curr_size -= (guest->size);
 	}
@@ -442,7 +453,7 @@ void my_heapinfo(){
 
 	if (s==-1 && l==-1){
 		Node *t = ((_heap_info*)base)->head;
-		if (t==NULL) { s=l=0; printf("Hello\n\n"); } // this might not be reqd...
+		if (t==NULL) { s=l=0; } // this might not be reqd...
 		else{
 			s=l=t->size;
 			t=t->next;
@@ -497,8 +508,8 @@ int main(int argc, char *argv[]){
 	printf("Head: %p\n",*(Node*)(base));
 	printf("Head+1: %p\n",(Node*)(base)+1);
 	*/
-
-	/* T1 starts
+	/*
+	// T1 starts
 	void* ptr1 = my_alloc(400);
 	printf("|||>>>%d|||\n",(int)ptr1);
 	my_heapinfo();
@@ -506,6 +517,7 @@ int main(int argc, char *argv[]){
 	printf("|||>>>%d|||\n",(int)ptr2);
 	my_heapinfo();
 	//void* ptr3 = my_alloc(64);
+	//printf("|||>>>%d|||\n",(int)ptr3);
 	//my_heapinfo();
 	void* ptr4 = my_alloc(96);
 	printf("|||>>>%d|||\n",(int)ptr4);
@@ -530,6 +542,7 @@ int main(int argc, char *argv[]){
 	T1 ends*/
 
 
+	
 	// T2 starts  ... doesn't clear the whole free list
 	my_heapinfo();
 	void *ptr1 = my_alloc(48);
@@ -548,7 +561,7 @@ int main(int argc, char *argv[]){
 	my_heapinfo();
 	my_free(ptr2); // top exists
 	my_heapinfo();
-	my_free(ptr5); // single block free
+	my_free(ptr5); // bottom exists 
 	my_heapinfo();
 	my_free(ptr4); // bottom exists
 	my_heapinfo();
@@ -560,8 +573,46 @@ int main(int argc, char *argv[]){
 	my_free(ptr1);
 	ptr1 = my_alloc(472); // partially full -> make it 488
 	my_heapinfo();
+	//T2 end*/
+
+	/*
+	// T3
+	my_heapinfo();
+	void *ptr1 = my_alloc(56);
+	my_heapinfo();
+	void *ptr2 = my_alloc(96);
+	my_heapinfo();
+	void *ptr3 = my_alloc(160);
+	my_heapinfo();
+	void *ptr4 = my_alloc(32);
+	my_heapinfo();
+	void *ptr5 = my_alloc(88);
+	my_heapinfo();
+	void *ptr6 = my_alloc(88); // can't allocate
+	my_heapinfo();
+	my_free(ptr1); // single block free
+	my_heapinfo();
+	my_free(ptr4); // single block free
+	my_heapinfo();
+	ptr1 = my_alloc(24); //alloc in chunk 1
+	my_heapinfo();
+	my_free(ptr5); // top&bottom exists 
+	my_heapinfo();
+	ptr4 = my_alloc(32); //alloc in chunk 4-5
+	my_heapinfo();
 
 
+
+
+
+	my_free(ptr2); // top exists
+	my_heapinfo();
+	
+	my_heapinfo();
+	my_free(ptr3); // both top and bottom exists
+	my_heapinfo();
+
+	*/
 	/*
 	void *ptr = my_alloc(8);
 	/// printf("///%p\n",ptr);
