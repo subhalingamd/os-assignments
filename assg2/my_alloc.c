@@ -513,6 +513,16 @@ void invalidate1(){
 	my_heapinfo();
 }
 
+void traverse1(){
+	Node *head = (Node*)(((_heap_info*)base)->head);
+	printf("\n\n\n");
+	while (head!=NULL){
+		printf("-->%d",head->size);
+		head = head->next;
+	}
+	printf("||\n\n\n");
+}
+
 int main(int argc, char *argv[]){
 
 	int _errno = my_init();
@@ -642,9 +652,12 @@ int main(int argc, char *argv[]){
 
 
 
-	//T start
+	//T start -- for === Max Size: 488
 	my_heapinfo();
-	void *ptr1 = my_alloc(8);
+	void *ptr0 = my_alloc(8000);  // single node overflow
+	my_heapinfo();
+	void *ptr1 = my_alloc(8);	// single node enough free space
+	printf("returned %d]************\n",(int)ptr1);
 	my_heapinfo();
 	void *ptr2 = my_alloc(8);
 	my_heapinfo();
@@ -684,10 +697,90 @@ int main(int argc, char *argv[]){
 	my_heapinfo();
 	void *ptr20 = my_alloc(16);
 	my_heapinfo();
-	void *ptr21 = my_alloc(8); // this shld remove the node from free list
+	void *ptr21 = my_alloc(8); // single node -- remove the node from free list
+	printf("returned %d]************\n",(int)ptr21);
 	my_heapinfo();
-	my_free(ptr13);
+	void *ptr22 = my_alloc(8); // no free space (head-->NULL)
 	my_heapinfo();
+	traverse1();
+	my_free(ptr13);		// single block added
+	my_heapinfo();
+	my_free(ptr12); 	// bottom neighbour
+	// my_heapinfo();
+	my_free(ptr10);
+	my_heapinfo();
+	traverse1();
+	my_free(ptr8);
+	my_free(ptr6);
+	traverse1();
+	my_free(ptr11);		// top & bottom neighbour
+	my_heapinfo();
+	traverse1();
+	my_free(ptr5);
+	my_heapinfo();
+	traverse1();
+	void *ptr23 = my_alloc(8); // enough space--largest remains largest
+	printf("returned %d]************\n",(int)ptr23);
+	my_heapinfo();
+	traverse1();
+	void *ptr24 = my_alloc(40); // enough space-- second largest becomes largest
+	my_heapinfo();
+	printf("returned %d]************\n",(int)ptr24);
+	traverse1();
+	void *ptr25 = my_alloc(4000); // multinode overflow
+	my_heapinfo();
+	traverse1();
+	void *ptr26 = my_alloc(40); // remove the node -- second largest is largest and smallest is smallest
+	printf("returned %d]************\n",(int)ptr26);
+	my_heapinfo();
+	traverse1();
+	void *ptr27 = my_alloc(8); // enough space -- second largest is largest and smallest is 0
+	my_heapinfo();
+	traverse1();
+
+	my_free(ptr1);
+	my_free(ptr3);
+	my_free(ptr5);
+	my_free(ptr16);
+	my_free(ptr18);
+	my_free(ptr20);
+	my_heapinfo();
+	traverse1();
+
+	my_free(ptr17);
+	my_heapinfo();
+	traverse1();
+
+	void *ptr28 = my_alloc(8);
+	my_heapinfo();
+	traverse1();
+
+	void *ptr29 = my_alloc(8);
+	my_heapinfo();
+	traverse1();
+
+	void *ptr30 = my_alloc(8);
+	my_heapinfo();
+	traverse1();
+
+	void *ptr31 = my_alloc(16);
+	my_heapinfo();
+	traverse1();
+
+	void *ptr32 = my_alloc(16);
+	my_heapinfo();
+	traverse1();
+
+	my_alloc(8);
+	my_alloc(8);
+	my_alloc(8);
+	my_alloc(8);
+	my_alloc(8);
+	my_alloc(8);
+	my_alloc(8);
+	my_heapinfo();
+	traverse1();
+
 
 
 
