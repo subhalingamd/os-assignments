@@ -51,7 +51,7 @@ void init_heap_info(){
 	// check vals once...
 
 	
-	printf("Adding _heap_info at %d\n",(int)(base));
+	//printf("Adding _heap_info at %d\n",(int)(base));
 	/*
 	printf("large chunk %d\n",((_heap_info*)(base))->large_chunk);
 	printf("blocks_count %d\n",((_heap_info*)(base))->blocks_count);
@@ -76,7 +76,7 @@ void init_freelist(){
 	((_heap_info*)base)->head = head;
 
 	
-	printf("Currently head at %d\n",(int)head);
+	// printf("Currently head at %d\n",(int)head);
 	// printf("head in _heap_info : %d\n\n",((_heap_info*)base)->head);
 	
 	
@@ -147,7 +147,7 @@ void* my_alloc(int size){
 	// TODO
 
 	Node *head = (Node*)(((_heap_info*)base)->head);
-	printf("myalloc says head is %d\n",(int)head);
+	// printf("myalloc says head is %d\n",(int)head);
 
 	// no free space / one node / 2+ nodes...
 	if (head == NULL) { // no free space
@@ -168,7 +168,8 @@ void* my_alloc(int size){
 		else{
 			if (size + sizeof(_header) <= head->size){ // size rem >= Node size
 				Node *new_head = ((void*)(head)+size+sizeof(_header));
-				printf("[Changing from %d to %d]\n",(int)head,(int)new_head);
+				printf("---Node retained---\n");
+				// printf("[Changing from %d to %d]\n",(int)head,(int)new_head);
 				
 				new_head->size = head->size - size - sizeof(_header);
 				new_head->next = NULL;
@@ -178,10 +179,11 @@ void* my_alloc(int size){
 
 				((_heap_info*)base)->head = new_head;
 				
+				/*
 				printf("[Now, old_head->size will be size in header = %d]\n",(int)*(int*)head);
 				printf("[Alloc at %d]\n",(int)alloc);
 				printf("[New head is at %d (%d)]\n\n",(int)((_heap_info*)base)->head,(int)new_head);
-				
+				*/
 				_heap_info *det = (_heap_info*)(base);
 				det->large_chunk = det->small_chunk = new_head->size;
 				det->curr_size += (size + sizeof(_header));
@@ -190,9 +192,10 @@ void* my_alloc(int size){
 				return ((void*)(alloc)+sizeof(_header));
 			}
 			else{
-				printf("[Changing size from %d",size);
+				printf("---Node removed---\n");
+				//printf("[Changing size from %d",size);
 				size = head->size + (int)sizeof(Node) - sizeof(_header);
-				printf("to %d]\n",size);
+				//printf("to %d]\n",size);
 
 				_header *alloc = (_header*)head;
 				alloc->size = size; alloc->magic = _MAGIC_NUM;
@@ -203,7 +206,7 @@ void* my_alloc(int size){
 				det->large_chunk = det->small_chunk = 0;
 				det->curr_size += (size + sizeof(_header) - sizeof(Node)); // = head->size
 				det->blocks_count += 1; 
-				printf("[Alloc at %d]\n",(int)alloc);
+				//printf("[Alloc at %d]\n",(int)alloc);
 				return ((void*)(alloc)+sizeof(_header));
 			}
 		}
@@ -260,7 +263,8 @@ void* my_alloc(int size){
 		else{
 			if (size + sizeof(_header) <= res->size){ // size rem >= Node size
 				Node *new_head = ((void*)(res)+size+sizeof(_header));
-				printf("[Changing from %d to %d]\n",(int)res,(int)((void*)(res)+size+sizeof(_header)));
+				printf("---Node retained---\n");
+				//printf("[Changing from %d to %d]\n",(int)res,(int)((void*)(res)+size+sizeof(_header)));
 				
 				new_head->size = res->size - size - sizeof(_header);
 				new_head->next = res->next;
@@ -276,16 +280,20 @@ void* my_alloc(int size){
 				}
 				
 				
-				printf("[Now, old_head->size will be size in header = %d]\n",(int)*(int*)res);
-				printf("[Returns %d]\n",(int)((void*)(alloc)+sizeof(_header)));
+				//printf("[Now, old_head->size will be size in header = %d]\n",(int)*(int*)res);
+				//printf("[Returns %d]\n",(int)((void*)(alloc)+sizeof(_header)));
 				
 				_heap_info *det = (_heap_info*)(base);
 				
 				int largest_updated = largest-size-sizeof(_header);
 				det->large_chunk = max(largest_updated,second_largest);
 				
+				/*
 				if (largest_updated>0) {det->small_chunk = min(largest_updated,smallest);}
 				else {det->small_chunk = smallest;}
+				*/
+				// 0 is allowed as chunk exists!
+				det->small_chunk = min(largest_updated,smallest);
 
 				det->curr_size += (size + sizeof(_header));
 				det->blocks_count += 1; 
@@ -293,9 +301,10 @@ void* my_alloc(int size){
 				return ((void*)(alloc)+sizeof(_header));
 			}
 			else{
-				printf("[Changing size from %d",size);
+				printf("---Node removed---\n");
+				//printf("[Changing size from %d",size);
 				size = res->size + (int)sizeof(Node) - (int)sizeof(_header);
-				printf("to %d]\n",size);
+				//printf("to %d]\n",size);
 
 				_header *alloc = (_header*)res;
 				alloc->size = size; alloc->magic = _MAGIC_NUM;
@@ -306,7 +315,7 @@ void* my_alloc(int size){
 				else{
 					prev->next = res->next;
 				}
-
+				// the largest chunk doesn't exists anymore... :/
 				_heap_info *det = (_heap_info*)(base);
 				det->large_chunk = second_largest;
 				det->small_chunk = smallest;
@@ -340,7 +349,7 @@ void my_free(void *ptr){
 	if (ptr==NULL) {return;}
 
 	_header *h = ((_header*)ptr)-1;
-	printf("--[%d(data start) goes to %d(header start)]\n",(int)ptr,(int)h);
+	//printf("--[%d(data start) goes to %d(header start)]\n",(int)ptr,(int)h);
 
 	int size = h->size;
 	Node *guest = (Node*)h;
@@ -385,6 +394,7 @@ void my_free(void *ptr){
 			((_heap_info*)(base))->small_chunk = -1;
 		}
 		else{
+			/*
 			int bs = ((_heap_info*)(base))->large_chunk;
 			((_heap_info*)(base))->large_chunk = max(bs,guest->size);
 
@@ -392,15 +402,25 @@ void my_free(void *ptr){
 			//if (bs > 0) { ((_heap_info*)(base))->small_chunk = min(bs,guest->size); }
 			//else { ((_heap_info*)(base))->small_chunk = guest->size;}
 			((_heap_info*)(base))->small_chunk = min(bs,guest->size);
+			*/
+
+			if (guest->size > ((_heap_info*)(base))->large_chunk){
+				((_heap_info*)(base))->large_chunk = guest->size;
+			}
+			if (guest->size < ((_heap_info*)(base))->small_chunk){
+				((_heap_info*)(base))->small_chunk = guest->size;
+			}
+
 		}
+		
 		
 		((_heap_info*)(base))->curr_size -= (guest->size);
 	}
 
 	else if (guest_bottom == NULL ){ /// top exists but not bottom
-		printf("** guest_top->size changes from %d",guest_top->size);
+		//printf("** guest_top->size changes from %d",guest_top->size);
 		guest_top->size += (guest->size + sizeof(Node));
-		printf("to %d ** \n",guest_top->size);
+		//printf("to %d ** \n",guest_top->size);
 
 		// invalidate
 		((_heap_info*)(base))->large_chunk = -1;
@@ -487,6 +507,12 @@ void my_heapinfo(){
 	return;
 }
 
+void invalidate1(){
+	((_heap_info*)(base))->large_chunk = -1;
+	((_heap_info*)(base))->small_chunk = -1;
+	my_heapinfo();
+}
+
 int main(int argc, char *argv[]){
 
 	int _errno = my_init();
@@ -542,7 +568,7 @@ int main(int argc, char *argv[]){
 	T1 ends*/
 
 
-	
+	/*
 	// T2 starts  ... doesn't clear the whole free list
 	my_heapinfo();
 	void *ptr1 = my_alloc(48);
@@ -613,6 +639,63 @@ int main(int argc, char *argv[]){
 	my_heapinfo();
 
 	*/
+
+
+
+	//T start
+	my_heapinfo();
+	void *ptr1 = my_alloc(8);
+	my_heapinfo();
+	void *ptr2 = my_alloc(8);
+	my_heapinfo();
+	void *ptr3 = my_alloc(16);
+	my_heapinfo();
+	void *ptr4 = my_alloc(16);
+	my_heapinfo();
+	void *ptr5 = my_alloc(16);
+	my_heapinfo();
+	void *ptr6 = my_alloc(16);
+	my_heapinfo();
+	void *ptr7 = my_alloc(16);
+	my_heapinfo();
+	void *ptr8 = my_alloc(16);
+	my_heapinfo();
+	void *ptr9 = my_alloc(16);
+	my_heapinfo();
+	void *ptr10 = my_alloc(16);
+	my_heapinfo();
+	void *ptr11 = my_alloc(16);
+	my_heapinfo();
+	void *ptr12 = my_alloc(16);
+	my_heapinfo();
+	void *ptr13 = my_alloc(16);
+	my_heapinfo();
+	void *ptr14 = my_alloc(16);
+	my_heapinfo();
+	void *ptr15 = my_alloc(16);
+	my_heapinfo();
+	void *ptr16 = my_alloc(16);
+	my_heapinfo();
+	void *ptr17 = my_alloc(16);
+	my_heapinfo();
+	void *ptr18 = my_alloc(16);
+	my_heapinfo();
+	void *ptr19 = my_alloc(16);
+	my_heapinfo();
+	void *ptr20 = my_alloc(16);
+	my_heapinfo();
+	void *ptr21 = my_alloc(8); // this shld remove the node from free list
+	my_heapinfo();
+	my_free(ptr13);
+	my_heapinfo();
+
+
+
+
+
+	//T ends
+
+
 	/*
 	void *ptr = my_alloc(8);
 	/// printf("///%p\n",ptr);
