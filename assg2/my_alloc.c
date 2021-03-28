@@ -143,7 +143,7 @@ int my_init(){
 void* my_alloc(int size){
 
 	if (size%8 != 0) { return NULL; }
-	if (size == 0) { return NULL; }
+	if (size <= 0) { return NULL; }
 	// TODO
 
 	Node *head = (Node*)(((_heap_info*)base)->head);
