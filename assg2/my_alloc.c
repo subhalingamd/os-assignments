@@ -8,7 +8,7 @@
 //#include <fcntl.h>
 #include <errno.h>
 
-#define _PAGE_SIZE 512 // 4096
+#define _PAGE_SIZE 4096
 #define _MAGIC_NUM 45816
 
 #define min(X, Y) (((X) < (Y)) ? (X) : (Y))
@@ -79,7 +79,7 @@ void init_freelist(){
 	// printf("Currently head at %d\n",(int)head);
 	// printf("head in _heap_info : %d\n\n",((_heap_info*)base)->head);
 	
-	
+
 	/* printf("Address of head: %d\n",(int)head); */
 
 	/*
@@ -90,6 +90,7 @@ void init_freelist(){
 	*/
 }
 
+// deprecated function
 Node* find_suitable_block(int size){
 	/*
 	Node *t = head, *res = NULL;
@@ -104,6 +105,7 @@ Node* find_suitable_block(int size){
 	return NULL;
 }
 
+// deprecated function
 void split(Node* nd, int size){
 	/*_header *h = (_header*) nd;
 	if (size == nd->size - sizeof(Node) + sizeof(_header)){
@@ -151,16 +153,16 @@ void* my_alloc(int size){
 
 	// no free space / one node / 2+ nodes...
 	if (head == NULL) { // no free space
-		printf("head==NULL>>>>\n\n");
+		// printf("head==NULL>>>>\n\n");
 		_heap_info *det = (_heap_info*)(base);
 		det->large_chunk = det->small_chunk = 0 ;
 		return NULL;
 	}
 
 	if (head->next == NULL) { // only single node
-		printf("Single node in free list....\n");
+		// printf("Single node in free list....\n");
 		if (size + sizeof(_header) > head->size + sizeof(Node)){ // no space
-			printf("---Overflow...\n");
+			// printf("---Overflow...\n");
 			_heap_info *det = (_heap_info*)(base);
 			det->large_chunk = det->small_chunk = head->size;
 			return NULL;
@@ -168,7 +170,7 @@ void* my_alloc(int size){
 		else{
 			if (size + sizeof(_header) <= head->size){ // size rem >= Node size
 				Node *new_head = ((void*)(head)+size+sizeof(_header));
-				printf("---Node retained---\n");
+				// printf("---Node retained---\n");
 				// printf("[Changing from %d to %d]\n",(int)head,(int)new_head);
 				
 				new_head->size = head->size - size - sizeof(_header);
@@ -192,7 +194,7 @@ void* my_alloc(int size){
 				return ((void*)(alloc)+sizeof(_header));
 			}
 			else{
-				printf("---Node removed---\n");
+				// printf("---Node removed---\n");
 				//printf("[Changing size from %d",size);
 				size = head->size + (int)sizeof(Node) - sizeof(_header);
 				//printf("to %d]\n",size);
@@ -249,12 +251,13 @@ void* my_alloc(int size){
 			t = t->next;
 		}
 		
-
+		/*
 		printf("More than one node in free list....\n");
 		printf("- [L:%d; 2L:%d; S:%d]\n;",largest,second_largest,smallest);
+		*/
 
 		if (res==NULL){ // no space
-			printf("---Overflow...\n");
+			// printf("---Overflow...\n");
 			_heap_info *det = (_heap_info*)(base);
 			det->large_chunk = largest;
 			det->small_chunk = smallest;
@@ -263,7 +266,7 @@ void* my_alloc(int size){
 		else{
 			if (size + sizeof(_header) <= res->size){ // size rem >= Node size
 				Node *new_head = ((void*)(res)+size+sizeof(_header));
-				printf("---Node retained---\n");
+				// printf("---Node retained---\n");
 				//printf("[Changing from %d to %d]\n",(int)res,(int)((void*)(res)+size+sizeof(_header)));
 				
 				new_head->size = res->size - size - sizeof(_header);
@@ -301,7 +304,7 @@ void* my_alloc(int size){
 				return ((void*)(alloc)+sizeof(_header));
 			}
 			else{
-				printf("---Node removed---\n");
+				// printf("---Node removed---\n");
 				//printf("[Changing size from %d",size);
 				size = res->size + (int)sizeof(Node) - (int)sizeof(_header);
 				//printf("to %d]\n",size);
@@ -355,8 +358,8 @@ void my_free(void *ptr){
 	Node *guest = (Node*)h;
 	guest->size = size + sizeof(_header) - sizeof(Node);
 	guest->next = NULL;
-	printf("--[Guest added at %d]\n",(int)guest);
-	printf("--[Guest->size: %d]\n",(int)guest->size);
+	//printf("--[Guest added at %d]\n",(int)guest);
+	//printf("--[Guest->size: %d]\n",(int)guest->size);
 
 	((_heap_info*)(base))->blocks_count -= 1;
 
@@ -367,12 +370,12 @@ void my_free(void *ptr){
 	// if head --> NULL => cur -- > NULL -- so doesn't enter loop
 	while (cur != NULL){
 		if ((void*)(cur) + cur->size + sizeof(Node) == guest){ // top
-			printf("******Top neighbour Found******\n");
+			//printf("******Top neighbour Found******\n");
 			guest_top = cur;
 			// guest_top_prev = prev; // not reqd
 		}
 		else if ((void*)(guest) + guest->size + sizeof(Node) == cur){ // bottom // mutually excl
-			printf("******Bottom neighbour Found******\n");
+			//printf("******Bottom neighbour Found******\n");
 			guest_bottom = cur;
 			guest_bottom_prev = prev;
 		}
@@ -507,6 +510,7 @@ void my_heapinfo(){
 	return;
 }
 
+/*
 void invalidate1(){
 	((_heap_info*)(base))->large_chunk = -1;
 	((_heap_info*)(base))->small_chunk = -1;
@@ -522,14 +526,19 @@ void traverse1(){
 	}
 	printf("||\n\n\n");
 }
+*/
 
+
+/****************************************************************
 int main(int argc, char *argv[]){
-
+	
 	int _errno = my_init();
 	if (_errno){
 		fprintf(stderr, "mmap failed: %s\n", strerror(_errno));
 		exit(0);
 	}
+****************************************************************/
+
 	/*
 	printf("%p\n",base);
 	printf("sizeof(Node): %lu\n",sizeof(Node));
@@ -651,13 +660,13 @@ int main(int argc, char *argv[]){
 	*/
 
 
-
+	/*
 	//T start -- for === Max Size: 488
 	my_heapinfo();
 	void *ptr0 = my_alloc(8000);  // single node overflow
 	my_heapinfo();
 	void *ptr1 = my_alloc(8);	// single node enough free space
-	printf("returned %d]************\n",(int)ptr1);
+	//printf("returned %d]************\n",(int)ptr1);
 	my_heapinfo();
 	void *ptr2 = my_alloc(8);
 	my_heapinfo();
@@ -698,7 +707,7 @@ int main(int argc, char *argv[]){
 	void *ptr20 = my_alloc(16);
 	my_heapinfo();
 	void *ptr21 = my_alloc(8); // single node -- remove the node from free list
-	printf("returned %d]************\n",(int)ptr21);
+	//printf("returned %d]************\n",(int)ptr21);
 	my_heapinfo();
 	void *ptr22 = my_alloc(8); // no free space (head-->NULL)
 	my_heapinfo();
@@ -716,31 +725,31 @@ int main(int argc, char *argv[]){
 	my_free(ptr11);		// top & bottom neighbour
 	my_heapinfo();
 	traverse1();
+
 	my_free(ptr5);
 	my_heapinfo();
 	traverse1();
 	void *ptr23 = my_alloc(8); // enough space--largest remains largest
-	printf("returned %d]************\n",(int)ptr23);
+	//printf("returned %d]************\n",(int)ptr23);
 	my_heapinfo();
 	traverse1();
+
 	void *ptr24 = my_alloc(40); // enough space-- second largest becomes largest
 	my_heapinfo();
-	printf("returned %d]************\n",(int)ptr24);
+	//printf("returned %d]************\n",(int)ptr24);
 	traverse1();
 	void *ptr25 = my_alloc(4000); // multinode overflow
 	my_heapinfo();
 	traverse1();
 	void *ptr26 = my_alloc(40); // remove the node -- second largest is largest and smallest is smallest
-	printf("returned %d]************\n",(int)ptr26);
+	//printf("returned %d]************\n",(int)ptr26);
 	my_heapinfo();
 	traverse1();
 	void *ptr27 = my_alloc(8); // enough space -- second largest is largest and smallest is 0
 	my_heapinfo();
 	traverse1();
-
 	my_free(ptr1);
 	my_free(ptr3);
-	my_free(ptr5);
 	my_free(ptr16);
 	my_free(ptr18);
 	my_free(ptr20);
@@ -781,12 +790,8 @@ int main(int argc, char *argv[]){
 	my_heapinfo();
 	traverse1();
 
-
-
-
-
-
 	//T ends
+	*/
 
 
 	/*
@@ -797,7 +802,10 @@ int main(int argc, char *argv[]){
 	
 	my_heapinfo();
 	*/
+
+/****************************************************************
 	my_clean();
 
 	return 0;
 }
+****************************************************************/
