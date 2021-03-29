@@ -499,6 +499,8 @@ void my_heapinfo(){
 		}
 	}
 
+	((_heap_info*)base)->small_chunk = s; ((_heap_info*)base)->large_chunk = l;
+
 	// Do not edit below output format
 	printf("=== Heap Info ================\n");
 	printf("Max Size: %d\n", _PAGE_SIZE- (int)sizeof(_heap_info));
