@@ -1,0 +1,42 @@
+2 worst-fit
+
+The freelist is a linkedlist of 'Node' structure. It stores the free size (after subtracting the size of the Node) and the next.
+For header, '_header' is used. The size does NOT include the size of the header.
+
+The information used in my_heapinfo() is stored in '_heap_info' which is embedded to the 4KB page at the beginning. It stores the head, the largest chunk size, smallest chunk size, number of blocks allocated and current size. ONLY the base of this page (returned by mmap()) is maintained as a global variable.
+The largest chunk size and smallest chunk size is updated at every my_alloc() and in one case (when the released block doesn't have 'free' neighbours around and these values are strictly positive) in my_free(). In other cases of my_free (no free neighbour but both values are non-posiitve(0/-1), at least one free neighbour), the values are invalidated to '-1' and are computed when my_heapinfo() is called in such cases. (If the chunk values are both zero, it would mean that there are no free nodes at all or all the free nodes have size 0. Hence, it is not possible to decide how to update the chunk size values). It is to note that the value updates for chunk size is independent of previous values in my_alloc() and dependent on previous values for the single case of my_free() mentioned earlier. All other values of my_heapinfo() are updated at every call of my_alloc() and my_free() and is O(1) in my_heapinfo().
+
+In more detail, my_alloc() is divided into three cases:
+	- head is NULL: which means no free space => update largest/smallest chunk sizes to 0 and return NULL;
+	- single node in list: 
+		- if size requested + header_size > freelist_node->size + freelist_node_size (i.e. overflow -- size requested cannot be allocated because sufficient space is not available): update largest/smallest chunk sizes to head->size and return NULL;
+		- if size requested + header_size <= freelist_node->size (the node can be retained): push the node down and update the address in the head, update the values of current sizes (increment by: size + header_size), increment blocks allocated by 1 and largest/smallest chunk sizes to the remaining size of the node. return the pointer of the allocated block accordingly.
+		- if freelist_node->size < size requested + header_size <= freelist_node->size + freelist_node_size (the node has to be deleted): make head point to NULL and allocate the complete chunk (increase the size accordingly, if required), update the values of current sizes by incrementing by head->size, increment blocks allocated by 1 and largest/smallest chunk sizes to 0. pointer of the allocated block accordingly.
+	- two or more than two nodes in the list:
+		* get the largest, second largest and smallest chunk sizes (as int) and the largest chunk (as node) (for allocation) in a single pass
+		* the following three cases (similar to above) are possible:
+			- if size requested + header_size > freelist_node->size + freelist_node_size (i.e. overflow -- size requested cannot be allocated because sufficient space is not available): update largest/smallest chunk sizes to values in largest/smallest ints and return NULL;
+			- if size requested + header_size <= freelist_node->size (the node can be retained): push the node down and update the address in the previous node, update the values of current sizes (increment by: size + header_size), increment blocks allocated by 1 and largest chunk size to max(second_largest, largest - size - header_size)/smallest chunk size to min(smallest, largest - size - header_size). return the pointer of the allocated block accordingly.
+			- if freelist_node->size < size requested + header_size <= freelist_node->size + freelist_node_size (the node has to be deleted): make previous node point to next of this node, and allocate the complete chunk (increase the size, if required), update the values of current sizes, increment blocks allocated by 1 and largest/smallest chunk sizes to second_largest/smallest respectively. return the pointer of the allocated block accordingly.
+
+In my_free():
+	* make the allocated block into a freelist_node and update the size accordingly and keep next point to NULL for now
+	* decrement the number of blocks allocated (in heapinfo) by 1
+	* check for any chunks that are just above/below this released block
+	* the following four cases are possible:
+		- there are no neighbours: add the chunk at the head, and update the current size (of heapinfo). 
+			- If the largest/smallest chunk size value in heapinfo are both -1 (invalidated previously) or 0 (there can be no free space or all freelist nodes have zero size -- indeterminate: can't decide what to do directly), invalidate them to '-1' again
+			- else (even if only smallest chunk size in heapinfo is 0 and largest >0 => there exists some free nodes and the zero is because size of one of the freelist node's size being 0) if the newly added chunk's size > largest chunk size stored=> update the largest chunk size in heapinfo to chunk size. Similarly, if the newly added chunk's size < smallest chunk size stored=> update the smallest chunk size in heapinfo to chunk size.
+		- if only a top neighbour is found (but not bottom): update the size of the top_neighbour to released_chunk_size + freelist_node_size (and decrease this in the current size of heapinfo). Invalidate the largest/smallest chunk sizes in heapinfo to -1.
+		- if only a bottom neighbour is found (not top): add the size of the bottom_chunk + freelist_node_size to the newly released chunk and replace the bottom chunk node with the released chunk node. decrease current size by released_chunk_size + freelist_node_size. Invalidate the largest/smallest chunk sizes in heapinfo to -1.
+		- if both neighbours exists, add the sizes of the newly released chunk + size of the bottom neighbour + 2*freelist_node_size to top_neighbour chunk size. remove the bottom neighbour node. decrease current size by released_chunk_size + 2*freelist_node_size. Invalidate the largest/smallest chunk sizes in heapinfo to -1.
+
+In my_heapinfo(): if the largest chunk size and smallest chunk size are -1, compute them by traversing through the entire freelist and use the other values stored (and store these in _heap_info datastructure). else display the stored values directly.
+
+
+The newly released nodes (without free neighbours) are added to head
+
+The block is allocated from the start of the free node address and the free node is pushed down by (size+header_size) (or removed compeletely) when successful.
+
+The biggest chunk is chosen for allocation. If multiple such chunks exist, the one nearer to head in the freelist is chosen (the first one).
+
