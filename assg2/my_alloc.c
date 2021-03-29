@@ -176,10 +176,10 @@ void* my_alloc(int size){
 				new_head->size = head->size - size - sizeof(_header);
 				new_head->next = NULL;
 
+				((_heap_info*)base)->head = new_head;
+
 				_header *alloc = (_header*)head;
 				alloc->size = size; alloc->magic = _MAGIC_NUM;
-
-				((_heap_info*)base)->head = new_head;
 				
 				/*
 				printf("[Now, old_head->size will be size in header = %d]\n",(int)*(int*)head);
@@ -199,10 +199,10 @@ void* my_alloc(int size){
 				size = head->size + (int)sizeof(Node) - sizeof(_header);
 				//printf("to %d]\n",size);
 
+				((_heap_info*)base)->head = NULL;
+
 				_header *alloc = (_header*)head;
 				alloc->size = size; alloc->magic = _MAGIC_NUM;
-
-				((_heap_info*)base)->head = NULL;
 
 				_heap_info *det = (_heap_info*)(base);
 				det->large_chunk = det->small_chunk = 0;
@@ -272,15 +272,15 @@ void* my_alloc(int size){
 				new_head->size = res->size - size - sizeof(_header);
 				new_head->next = res->next;
 
-				_header *alloc = (_header*)res;
-				alloc->size = size; alloc->magic = _MAGIC_NUM;
-
 				if (prev == NULL){ // head
 					((_heap_info*)base)->head = new_head;
 				}
 				else{
 					prev->next = new_head;
 				}
+
+				_header *alloc = (_header*)res;
+				alloc->size = size; alloc->magic = _MAGIC_NUM;
 				
 				
 				//printf("[Now, old_head->size will be size in header = %d]\n",(int)*(int*)res);
@@ -309,15 +309,17 @@ void* my_alloc(int size){
 				size = res->size + (int)sizeof(Node) - (int)sizeof(_header);
 				//printf("to %d]\n",size);
 
-				_header *alloc = (_header*)res;
-				alloc->size = size; alloc->magic = _MAGIC_NUM;
-
+				// has to come before alloc (for 32-bits systems)
 				if (prev == NULL){ // head
 					((_heap_info*)base)->head = res->next;
 				}
 				else{
 					prev->next = res->next;
 				}
+
+				_header *alloc = (_header*)res;
+				alloc->size = size; alloc->magic = _MAGIC_NUM;
+
 				// the largest chunk doesn't exists anymore... :/
 				_heap_info *det = (_heap_info*)(base);
 				det->large_chunk = second_largest;
