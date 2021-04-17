@@ -115,6 +115,113 @@ void add_page(_address *frame, _address pagenum, int *dirty, char rw, int *reads
 	// set the added frame to 0 only and go to next frame
 	// when cycle completes, ...
 
+void for_CLOCK(){
+
+	int mem_access = 0, reads = 0, writes = 0, drops = 0;
+	_address frames[NUM_FRAMES];
+
+	int count = 0;
+	int dirty[NUM_FRAMES];
+
+	int timestamps[NUM_FRAMES], clock_hand = 0;
+	
+	// this might not be required...
+	for (int i = 0; i < NUM_FRAMES; i++) { dirty[i] = 0; timestamps[i] = 0;}
+
+	
+	///// ++start; start%=NUM_FRAMES; // if count<MAX_HIST, start<MAX_HIST
+	// TODO :: strcpy(history[*start],inp); // copy each char in inp to history
+	
+	///// if (count < NUM_FRAMES) count++;
+	//(*tot_count)++;
+
+
+
+    FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
+    char line[64];
+
+    while (fgets(line, sizeof(line), file)) {
+        /* note that fgets don't strip the terminating \n, checking its
+           presence would allow to handle lines longer that sizeof(line) */
+    	
+    	if (!strcmp(line,"\n")) { continue; }
+    	char virtadr[_HEX_SIZE+1]; int rw;
+    	for (int i = 0; i < _HEX_SIZE; i++) {
+    		virtadr[i] = line[i+2];
+    	}
+    	virtadr[_HEX_SIZE] = '\0';
+
+    	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
+
+    	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
+
+    	// if (line[12] == 'R')
+
+    	// in both cases check if page is found...
+    	if (count >= NUM_FRAMES){ // replace
+    		int idx = -1; // note
+    		for (int i=0; i<NUM_FRAMES; i++) {
+    			if (pagenum == frames[i]){
+    				idx = i;
+    				break;
+    			}
+    		}
+
+    		if (idx >=0 ){ 
+    			page_in_frames(&dirty[idx],line[_RW_POS]);
+    			timestamps[idx] = 1;
+    		}
+
+    		else {
+    			while (timestamps[clock_hand] != 0){
+    				timestamps[clock_hand] = 0;
+    				clock_hand = (clock_hand+1)%NUM_FRAMES;
+    			}
+    			idx = clock_hand;
+    			
+    			replace_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &writes, &drops);
+    			timestamps[idx] = 1;
+    		}
+
+    	}
+    	else { // just insert
+    		int idx = count; // note
+    		for (int i=0; i<count; i++) {
+    			if (pagenum == frames[i]){
+    				idx = i;
+    				break;
+    			}
+    		}
+
+
+    		if (idx == count) { 
+				add_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &count);
+    			timestamps[idx] = 1;
+    			
+    		}
+    		else { 
+    			page_in_frames(&dirty[idx],line[_RW_POS]); 
+    			timestamps[idx] = 1;
+    		}
+
+    	}
+    	/// timestamps[idx] = mem_access;
+    	mem_access++;
+    	//break;
+
+        //DEBUG_PRINT(("%s", line));
+    }
+    /* may check feof here to make a difference between eof and io failure -- network
+       timeout for instance */
+
+    fclose(file);
+    print_results(mem_access,reads,writes,drops);
+	
+}
+
+
+
+
 void for_LRU(){
 
 	int mem_access = 0, reads = 0, writes = 0, drops = 0;
@@ -172,7 +279,7 @@ void for_LRU(){
     		}
 
     		else {
-    			int idx = 0, timest = timestamps[0];
+    			idx = 0; int timest = timestamps[0];
     			for (int j=1; j<NUM_FRAMES; j++){
     				if (timestamps[j] < timest){
     					timest = timestamps[j];
@@ -437,10 +544,11 @@ int main(int argc, char *argv[]){
 		DEBUG_PRINT(("I: Calling FIFO...\n"));
 		for_FIFO();
 
-	}/*
+	}
 	else if (!strcmp(argv[3],"CLOCK")){
-
-	}*/
+		DEBUG_PRINT(("I: Calling CLOCK...\n"));
+		for_CLOCK();
+	}
 	else if (!strcmp(argv[3],"LRU")){
 		DEBUG_PRINT(("Calling LRU...\n"));
 		for_LRU();
