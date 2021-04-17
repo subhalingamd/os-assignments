@@ -118,10 +118,11 @@ void for_RANDOM(){
 	int mem_access = 0, reads = 0, writes = 0, drops = 0;
 	_address frames[NUM_FRAMES];
 
-	srand(_RANDOM_SEED);
 	int count = 0;
 	int dirty[NUM_FRAMES];
 	for (int i = 0; i < NUM_FRAMES; i++) { dirty[i] = 0;}
+
+	srand(_RANDOM_SEED);
 
 
     FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
@@ -199,13 +200,97 @@ void for_RANDOM(){
 
 void for_FIFO(){
 
-	int start = -1, count = 0;
+	int mem_access = 0, reads = 0, writes = 0, drops = 0;
+	_address frames[NUM_FRAMES];
+
+	int count = 0;
+	int dirty[NUM_FRAMES];
+	for (int i = 0; i < NUM_FRAMES; i++) { dirty[i] = 0;}
+
+
+	int head = -1;
 	
-	++start; start%=NUM_FRAMES; // if count<MAX_HIST, start<MAX_HIST
+	///// ++start; start%=NUM_FRAMES; // if count<MAX_HIST, start<MAX_HIST
 	// TODO :: strcpy(history[*start],inp); // copy each char in inp to history
 	
-	if (count < NUM_FRAMES) count++;
+	///// if (count < NUM_FRAMES) count++;
 	//(*tot_count)++;
+
+
+
+    FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
+    char line[64];
+
+    while (fgets(line, sizeof(line), file)) {
+        /* note that fgets don't strip the terminating \n, checking its
+           presence would allow to handle lines longer that sizeof(line) */
+    	
+    	if (!strcmp(line,"\n")) { continue; }
+    	char virtadr[_HEX_SIZE+1]; int rw;
+    	for (int i = 0; i < _HEX_SIZE; i++) {
+    		virtadr[i] = line[i+2];
+    	}
+    	virtadr[_HEX_SIZE] = '\0';
+
+    	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
+
+    	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
+
+    	// if (line[12] == 'R')
+
+    	// in both cases check if page is found...
+    	if (count >= NUM_FRAMES){ // replace
+    		int idx = -1; // note
+    		for (int i=0; i<NUM_FRAMES; i++) {
+    			if (pagenum == frames[i]){
+    				idx = i;
+    				break;
+    			}
+    		}
+
+    		if (idx >=0 ){ page_in_frames(&dirty[idx],line[_RW_POS]); }
+
+    		else {
+    			idx = ++head % NUM_FRAMES; // idx will be evicted
+    			
+    			replace_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &writes, &drops);
+    			
+    		}
+
+    	}
+    	else { // just insert
+    		int idx = count; // note
+    		for (int i=0; i<count; i++) {
+    			if (pagenum == frames[i]){
+    				idx = i;
+    				break;
+    			}
+    		}
+
+
+    		if (idx == count) { 
+				add_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &count);
+    			
+    			
+    		}
+    		else { page_in_frames(&dirty[idx],line[_RW_POS]); }
+
+    	}
+
+    	mem_access++;
+    	//break;
+
+        //DEBUG_PRINT(("%s", line));
+    }
+    /* may check feof here to make a difference between eof and io failure -- network
+       timeout for instance */
+
+    fclose(file);
+    print_results(mem_access,reads,writes,drops);
+	
+
+
+
 
 }
 
