@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <assert.h>
+#include <limits.h>
 
 // #define DEBUG // comment to turn off DEBUG mode
 
@@ -13,6 +14,7 @@
 #define _RANDOM_SEED 5635  // as stated in assg specs
 #define _HEX_SIZE 8 // does not include 0x
 #define _RW_POS 12
+#define _MAX_TRACE_WC 1000000 +1
 
 #define min(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -54,7 +56,7 @@ void print_verbose(int new_page, int old_page, int dirty_removal){
 void page_in_frames(int *dirty, char rw){
 	if (rw == 'W'){
 		*dirty = 1;
-		DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n WHEN FULL",pagenum));
+		// DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n WHEN FULL",pagenum));
 	}
 }
 
@@ -97,6 +99,148 @@ void add_page(_address *frame, _address pagenum, int *dirty, char rw, int *reads
 	++*reads;
 	++*count;
 }
+
+
+
+
+// Function to find the frame that will not be used
+// recently in future after given index in pg[0..pn-1]
+int predict_eviction_for_OPT(_address pages[], _address frames[], int num_pages, int curr_idx)
+{
+    // Store the index of pages which are going
+    // to be used recently in future
+    int res = -1, farthest = curr_idx;
+    for (int i = 0; i < NUM_FRAMES; i++) {
+        int j;
+        for (j = curr_idx; j < num_pages; j++) {
+            if (frames[i] == pages[j]) {
+                if (j > farthest) {
+                    farthest = j;
+                    res = i;
+                }
+                break;
+            }
+        }
+  
+        // If a page is never referenced in future,
+        // return it.
+        //DEBUG_PRINT(("\t\tI: %d\n",i));
+        if (j == num_pages)
+            return i; // = 0
+    }
+  
+    // If all of the frames were not in future,
+    // return any of them, we return 0. Otherwise
+    // we return res.
+    return (res == -1) ? 0 : res;
+}
+
+
+void for_OPT(){
+
+	int mem_access = 0, reads = 0, writes = 0, drops = 0;
+	_address frames[NUM_FRAMES];
+
+	int count = 0;
+	int dirty[NUM_FRAMES];
+	
+	// this might not be required...
+	for (int i = 0; i < NUM_FRAMES; i++) { dirty[i] = 0; }
+
+	_address trace_pns[_MAX_TRACE_WC]; char trace_rws[_MAX_TRACE_WC];
+
+	
+	
+    FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
+    char line[64]; int trace_ctr=0;
+
+    while (fgets(line, sizeof(line), file)) {
+        /* note that fgets don't strip the terminating \n, checking its
+           presence would allow to handle lines longer that sizeof(line) */
+    	
+    	if (!strcmp(line,"\n")) { continue; }
+
+    	char virtadr[_HEX_SIZE+1]; int rw;
+    	for (int i = 0; i < _HEX_SIZE; i++) {
+    		virtadr[i] = line[i+2];
+    	}
+    	virtadr[_HEX_SIZE] = '\0';
+
+    	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
+
+    	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
+
+    	trace_pns[trace_ctr] = pagenum;
+    	trace_rws[trace_ctr] = line[_RW_POS];
+    	trace_ctr++;
+    }
+    /* may check feof here to make a difference between eof and io failure -- network
+       timeout for instance */
+
+    fclose(file);
+
+    for (int tr_i = 0; tr_i < trace_ctr; tr_i++) {
+    	DEBUG_PRINT(("\tI: 0x%05x \t %c\n",trace_pns[tr_i],trace_rws[tr_i]));
+    	_address pagenum = trace_pns[tr_i];
+
+    	// in both cases check if page is found...
+    	if (count >= NUM_FRAMES){ // replace
+    		int idx = -1; // note
+    		for (int i=0; i<NUM_FRAMES; i++) {
+    			if (pagenum == frames[i]){
+    				idx = i;
+    				break;
+    			}
+    		}
+
+    		if (idx >=0 ){ 
+    			page_in_frames(&dirty[idx],trace_rws[tr_i]);
+    		}
+
+    		else {
+    			idx = predict_eviction_for_OPT(trace_pns, frames, trace_ctr, tr_i + 1);
+    			
+    			replace_page(&frames[idx], pagenum, &dirty[idx], trace_rws[tr_i], &reads, &writes, &drops);
+    		}
+
+    	}
+    	else { // just insert
+    		int idx = count; // note
+    		for (int i=0; i<count; i++) {
+    			if (pagenum == frames[i]){
+    				idx = i;
+    				break;
+    			}
+    		}
+
+
+    		if (idx == count) { 
+				add_page(&frames[idx], pagenum, &dirty[idx], trace_rws[tr_i], &reads, &count);    			
+    		}
+    		else { 
+    			page_in_frames(&dirty[idx],trace_rws[tr_i]); 
+    		}
+
+    	}
+    	/// timestamps[idx] = mem_access;
+    	mem_access++;
+    	//break;
+
+    	DEBUG_PRINT(("\tI: FRAMES:\t"));
+    	for (int x=0; x<NUM_FRAMES; x++){
+    		DEBUG_PRINT(("0x%05x  ",frames[x]));
+    	}
+    	DEBUG_PRINT(("\n\n"));
+
+       	
+    }
+    /* may check feof here to make a difference between eof and io failure -- network
+       timeout for instance */
+
+    print_results(mem_access,reads,writes,drops);
+	
+}
+
 
 
 // in CLOCK
@@ -536,14 +680,14 @@ int main(int argc, char *argv[]){
 	DEBUG_PRINT(("\t[%s,%d,%d]\n",TRACE_FILE,NUM_FRAMES,VERBOSE));
 
 	// OPT, FIFO, CLOCK, LRU, and RANDOM.
-	/*
+	
 	if (!strcmp(argv[3],"OPT")){
-
+		DEBUG_PRINT(("I: Calling OPT...\n"));
+		for_OPT();
 	}
-	else*/ if (!strcmp(argv[3],"FIFO")){
+	else if (!strcmp(argv[3],"FIFO")){
 		DEBUG_PRINT(("I: Calling FIFO...\n"));
 		for_FIFO();
-
 	}
 	else if (!strcmp(argv[3],"CLOCK")){
 		DEBUG_PRINT(("I: Calling CLOCK...\n"));
