@@ -325,6 +325,9 @@ void for_CLOCK(){
     			
     			replace_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &writes, &drops);
     			timestamps[idx] = 1;
+
+    			// One way to do it is to increase the pointer after replacing the page and making its use bit 1.
+    			clock_hand = (clock_hand+1)%NUM_FRAMES;
     		}
 
     	}
