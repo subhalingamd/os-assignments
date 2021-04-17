@@ -51,6 +51,53 @@ void print_verbose(int new_page, int old_page, int dirty_removal){
     }
 }
 
+void page_in_frames(int *dirty, char rw){
+	if (rw == 'W'){
+		*dirty = 1;
+		DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n WHEN FULL",pagenum));
+	}
+}
+
+void replace_page(_address *frame, _address pagenum, int *dirty, char rw, int *reads, int *writes, int *drops){
+	_address old_pagenum = *frame;
+	*frame = pagenum;
+
+	if (*dirty == 1) {
+		++*writes;
+		print_verbose(pagenum,old_pagenum,1);
+	}
+	else{
+		++*drops;
+		print_verbose(pagenum,old_pagenum,0);
+	}
+
+	if (rw == 'W'){
+		*dirty = 1;
+		DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n",pagenum));
+	}
+	else{
+		*dirty = 0;
+		DEBUG_PRINT(("\tI: Dropping dirty bit for pagenum 0x%05x\n",pagenum));
+	}
+
+	//DEBUG_PRINT(("dropping %d",idx));
+	++*reads;
+}
+
+void add_page(_address *frame, _address pagenum, int *dirty, char rw, int *reads, int *count){
+	*frame = pagenum;
+	DEBUG_PRINT(("\tI: Adding new pagenum 0x%05x\n",pagenum));
+
+	if (rw == 'W'){
+		*dirty = 1;
+	}
+	else{
+		*dirty = 0;
+	}
+	++*reads;
+	++*count;
+}
+
 
 // in CLOCK
 	// what comes in -> 1 (f22)
@@ -93,7 +140,7 @@ void for_RANDOM(){
 
     	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
 
-    	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[12]));
+    	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
 
     	// if (line[12] == 'R')
 
@@ -107,39 +154,12 @@ void for_RANDOM(){
     			}
     		}
 
-    		if (idx >=0 ){
-    			if (line[_RW_POS] == 'W'){
-    				dirty[idx] = 1;
-    				DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n WHEN FULL",pagenum));
-    			}
-    		}
+    		if (idx >=0 ){ page_in_frames(&dirty[idx],line[_RW_POS]); }
 
     		else {
     			idx = rand() % NUM_FRAMES; // idx will be evicted
-
-    			_address old_pagenum = frames[idx];
-    			frames[idx] = pagenum;
-
-    			if (dirty[idx] == 1) {
-    				writes++;
-    				print_verbose(pagenum,old_pagenum,1);
-    			}
-    			else{
-    				drops++;
-    				print_verbose(pagenum,old_pagenum,0);
-    			}
-
-    			if (line[_RW_POS] == 'W'){
-    				dirty[idx] = 1;
-    				DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n",pagenum));
-    			}
-    			else{
-    				dirty[idx] = 0;
-    				DEBUG_PRINT(("\tI: Dropping dirty bit for pagenum 0x%05x\n",pagenum));
-    			}
-
-    			//DEBUG_PRINT(("dropping %d",idx));
-    			reads++;
+    			
+    			replace_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &writes, &drops);
     			
     		}
 
@@ -155,24 +175,11 @@ void for_RANDOM(){
 
 
     		if (idx == count) { 
-    			frames[idx] = pagenum;
-    			DEBUG_PRINT(("\tI: Adding new pagenum 0x%05x\n",pagenum));
-
-    			if (line[_RW_POS] == 'W'){
-    				dirty[idx] = 1;
-    			}
-    			else{
-    				dirty[idx] = 0;
-    			}
-    			reads++;
-    			count++; 
+				add_page(&frames[idx], pagenum, &dirty[idx], line[_RW_POS], &reads, &count);
+    			
+    			
     		}
-    		else {
-    			if (line[_RW_POS] == 'W'){
-    				dirty[idx] = 1;
-    				DEBUG_PRINT(("\tI: Setting dirty bit for pagenum 0x%05x\n",pagenum));
-    			}
-    		}
+    		else { page_in_frames(&dirty[idx],line[_RW_POS]); }
 
     	}
 
