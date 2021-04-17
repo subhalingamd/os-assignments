@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include <string.h>
-#include <sys/mman.h>
+// #include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
 #include <assert.h>
@@ -694,7 +694,7 @@ int main(int argc, char *argv[]){
 		for_CLOCK();
 	}
 	else if (!strcmp(argv[3],"LRU")){
-		DEBUG_PRINT(("Calling LRU...\n"));
+		DEBUG_PRINT(("I: Calling LRU...\n"));
 		for_LRU();
 	}
 	else if (!strcmp(argv[3],"RANDOM")){
