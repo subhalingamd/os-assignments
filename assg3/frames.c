@@ -14,7 +14,7 @@
 #define _RANDOM_SEED 5635  // as stated in assg specs
 #define _HEX_SIZE 8 // does not include 0x
 #define _RW_POS 12
-#define _MAX_TRACE_WC 10000000 +1
+#define _MAX_TRACE_WC (10000000+1)
 
 #define min(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
