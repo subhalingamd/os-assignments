@@ -1,0 +1,9 @@
+gcc frames.c
+
+for mode in OPT FIFO CLOCK LRU RANDOM
+do	mkdir -p out/$mode
+	for num_frames in 1 5 10 20 50 75 100 200 500 1000
+	do	echo $mode/$num_frames
+		time ./a.out huge_trace $num_frames $mode -verbose > out/$mode/$num_frames.out
+	done
+done
