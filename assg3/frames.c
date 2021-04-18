@@ -151,7 +151,7 @@ void for_OPT(){
 	_address *trace_pns = (_address *) malloc(_MAX_TRACE_WC*sizeof(_address));
 	char *trace_rws = (char*) malloc(_MAX_TRACE_WC*sizeof(char));
 	
-	
+
     FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
     char line[64]; int trace_ctr=0;
 
@@ -239,6 +239,9 @@ void for_OPT(){
        timeout for instance */
 
     print_results(mem_access,reads,writes,drops);
+
+    //cleanup
+    free(trace_pns); free(trace_rws);
 	
 }
 
