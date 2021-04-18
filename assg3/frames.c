@@ -13,8 +13,8 @@
 #define _PAGE_SIZE 4096
 #define _RANDOM_SEED 5635  // as stated in assg specs
 #define _HEX_SIZE 8 // does not include 0x
-#define _RW_POS 12
-#define _MAX_TRACE_WC (10000000+1)
+#define _RW_POS 12 // position of R/W in trace file
+#define _MAX_TRACE_WC (10000000+1)  // upper bound for trace file size (used for OPT)
 
 #define min(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define max(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -103,12 +103,10 @@ void add_page(_address *frame, _address pagenum, int *dirty, char rw, int *reads
 
 
 
-// Function to find the frame that will not be used
-// recently in future after given index in pg[0..pn-1]
+// Function to find the frame that will not be used in OPT
 int predict_eviction_for_OPT(_address pages[], _address frames[], int num_pages, int curr_idx)
 {
-    // Store the index of pages which are going
-    // to be used recently in future
+    // Store index of pages which will be used recently in future
     int res = -1, farthest = curr_idx;
     for (int i = 0; i < NUM_FRAMES; i++) {
         int j;
@@ -122,16 +120,14 @@ int predict_eviction_for_OPT(_address pages[], _address frames[], int num_pages,
             }
         }
   
-        // If a page is never referenced in future,
-        // return it.
-        //DEBUG_PRINT(("\t\tI: %d\n",i));
+        // If a page is never referenced in future, return it.
+        // DEBUG_PRINT(("\t\tI: %d\n",i));
         if (j == num_pages)
-            return i; // = 0
+            return i;
     }
   
-    // If all of the frames were not in future,
-    // return any of them, we return 0. Otherwise
-    // we return res.
+    // If all of the frames were not in future, return 0. 
+    // Else we return 'res'
     return (res == -1) ? 0 : res;
 }
 
@@ -223,7 +219,6 @@ void for_OPT(){
     		}
 
     	}
-    	/// timestamps[idx] = mem_access;
     	mem_access++;
     	//break;
 
@@ -255,14 +250,6 @@ void for_OPT(){
 	// when a loop completes, 0 is encountered agin -> so just drop
 	//  the keeping count [not] req
 
-		// keep a track of number of frames checked -> if one circle completed => remove accordingly
-			// if not handled properly -> infinite loop	
-		// also after replacing, better to move the clock hand to next frame (so count check == num frames)
-
-  // THIS WONT WORK >>>
-	// set the added frame to 0 only and go to next frame
-	// when cycle completes, ...
-
 void for_CLOCK(){
 
 	int mem_access = 0, reads = 0, writes = 0, drops = 0;
@@ -275,14 +262,6 @@ void for_CLOCK(){
 	
 	// this might not be required...
 	for (int i = 0; i < NUM_FRAMES; i++) { dirty[i] = 0; timestamps[i] = 0;}
-
-	
-	///// ++start; start%=NUM_FRAMES; // if count<MAX_HIST, start<MAX_HIST
-	// TODO :: strcpy(history[*start],inp); // copy each char in inp to history
-	
-	///// if (count < NUM_FRAMES) count++;
-	//(*tot_count)++;
-
 
 
     FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
@@ -302,8 +281,6 @@ void for_CLOCK(){
     	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
 
     	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
-
-    	// if (line[12] == 'R')
 
     	// in both cases check if page is found...
     	if (count >= NUM_FRAMES){ // replace
@@ -386,13 +363,6 @@ void for_LRU(){
 	// this might not be required...
 	for (int i = 0; i < NUM_FRAMES; i++) { dirty[i] = 0; timestamps[i] = 0;}
 	
-	///// ++start; start%=NUM_FRAMES; // if count<MAX_HIST, start<MAX_HIST
-	// TODO :: strcpy(history[*start],inp); // copy each char in inp to history
-	
-	///// if (count < NUM_FRAMES) count++;
-	//(*tot_count)++;
-
-
 
     FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
     char line[64];
@@ -411,8 +381,6 @@ void for_LRU(){
     	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
 
     	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
-
-    	// if (line[12] == 'R')
 
     	// in both cases check if page is found...
     	if (count >= NUM_FRAMES){ // replace
@@ -476,10 +444,6 @@ void for_LRU(){
     fclose(file);
     print_results(mem_access,reads,writes,drops);
 	
-
-
-
-
 }
 
 
@@ -512,8 +476,6 @@ void for_RANDOM(){
     	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
 
     	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
-
-    	// if (line[12] == 'R')
 
     	// in both cases check if page is found...
     	if (count >= NUM_FRAMES){ // replace
@@ -565,7 +527,6 @@ void for_RANDOM(){
     fclose(file);
     print_results(mem_access,reads,writes,drops);
 	
-
 }
 
 void for_FIFO(){
@@ -587,7 +548,6 @@ void for_FIFO(){
 	//(*tot_count)++;
 
 
-
     FILE* file = fopen(TRACE_FILE, "r"); /* should check the result */
     char line[64];
 
@@ -605,8 +565,6 @@ void for_FIFO(){
     	_address pagenum = get_PN( (int)strtol(virtadr, NULL, 16)  );
 
     	DEBUG_PRINT((" - [%s -> 0x%05x - %c]\n",virtadr,pagenum,line[_RW_POS]));
-
-    	// if (line[12] == 'R')
 
     	// in both cases check if page is found...
     	if (count >= NUM_FRAMES){ // replace
@@ -658,10 +616,6 @@ void for_FIFO(){
     fclose(file);
     print_results(mem_access,reads,writes,drops);
 	
-
-
-
-
 }
 
 
@@ -687,7 +641,6 @@ int main(int argc, char *argv[]){
 	DEBUG_PRINT(("\t[%s,%d,%d]\n",TRACE_FILE,NUM_FRAMES,VERBOSE));
 
 	// OPT, FIFO, CLOCK, LRU, and RANDOM.
-	
 	if (!strcmp(argv[3],"OPT")){
 		DEBUG_PRINT(("I: Calling OPT...\n"));
 		for_OPT();
@@ -709,7 +662,7 @@ int main(int argc, char *argv[]){
 		for_RANDOM();
 	}
 	else{
-		fprintf(stderr, "Something went wrong.\n");
+		fprintf(stderr, "Something went wrong. Method not found.\n\tProTip: Choose from [OPT, FIFO, CLOCK, LRU, RANDOM]\n");
 	}
 
 	return 0;
