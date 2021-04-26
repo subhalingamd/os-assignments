@@ -2,6 +2,8 @@
 Source: https://stackoverflow.com/a/27847103
 */
 
+#include <stdint.h>
+#include <errno.h>
 
 #ifdef __APPLE__
 #include <dispatch/dispatch.h>
