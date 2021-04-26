@@ -34,6 +34,8 @@ void *Reader(void* arg)
 	// Releasing the Lock
 	ReaderUnlock(&rwlock);
 	printf("Reader: %d has released the lock\n",threadNUmber);
+
+	return NULL;
 }
 
 void *Writer(void* arg)
@@ -59,6 +61,8 @@ void *Writer(void* arg)
 	// Releasing the Lock
 	WriterUnlock(&rwlock);
 	printf("Writer: %d has released the lock\n",threadNUmber);
+
+	return NULL;
 }
 
 int main(int argc, char *argv[])
@@ -148,4 +152,5 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < write_num_threads; i++)
 		printf("Writer %d Lock Time: %ld Unlock Time: %ld\n", i, writerAcquireTime[i], writerReleaseTime[i]);
 
+	return 0;
 }

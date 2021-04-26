@@ -29,7 +29,6 @@ Sem_init(struct _sem *s, uint32_t value)
     sem_init(&s->sem, 0, value);
 #endif
 
-return;
 };
 
 static inline void
@@ -46,7 +45,6 @@ Sem_wait(struct _sem *s)
     } while (r == -1 && errno == EINTR);
 #endif
 
-return;
 };
 
 static inline void
@@ -59,5 +57,4 @@ Sem_post(struct _sem *s)
     sem_post(&s->sem);
 #endif
 
-return;
 };
